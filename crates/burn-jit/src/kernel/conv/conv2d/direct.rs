@@ -2,7 +2,7 @@ use burn_tensor::{
     ops::{conv::calculate_conv_output_size, ConvOptions},
     Shape,
 };
-use cubecl::{calculate_cube_count_elemwise, prelude::*};
+use cubecl::{calculate_cube_count_elemwise, prelude::*, tune_op};
 
 use crate::{
     kernel::into_contiguous,
@@ -11,7 +11,7 @@ use crate::{
         reshape,
     },
     tensor::JitTensor,
-    FloatElement, JitRuntime,
+    FloatElement, IntElement, JitRuntime,
 };
 
 #[derive(CubeLaunch)]
@@ -120,7 +120,9 @@ fn direct_conv2d_kernel<F: Float>(
 /// * `bias` - The bias added to each channel
 /// * `options` - The options to use for the convolution
 ///
-pub fn conv2d_direct<R: JitRuntime, E: FloatElement>(
+#[tune_op]
+#[allow(clippy::extra_unused_type_parameters)]
+pub fn conv2d_direct<R: JitRuntime, E: FloatElement, I: IntElement>(
     input: JitTensor<R, E, 4>,
     weight: JitTensor<R, E, 4>,
     bias: Option<JitTensor<R, E, 1>>,

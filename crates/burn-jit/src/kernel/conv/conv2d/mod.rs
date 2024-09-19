@@ -3,6 +3,7 @@ mod col2im;
 mod direct;
 mod im2col;
 mod transpose_direct;
+#[cfg(feature = "autotune")]
 mod tune;
 
 pub use base::*;
