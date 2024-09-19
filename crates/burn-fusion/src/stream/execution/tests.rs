@@ -33,9 +33,6 @@ struct TestStream {
 }
 
 /// A fake [optimization builder](OptimizationBuilder) for testing purpose.
-///
-/// The optimizer tries to fuse only the `expected_operations` if they appear
-/// in the operations queue
 struct TestOptimizationBuilder {
     builder_id: usize,
     expected_operations: Vec<OperationDescription>,
@@ -119,7 +116,7 @@ fn should_support_complex_stream() {
     stream.assert_number_of_operations(1);
     stream.assert_number_of_executions(2);
 
-    // Now we should trigger the second optimization builder.
+    // Nothing to execute.
     stream.add(operation_2());
     stream.assert_number_of_operations(0);
     stream.assert_number_of_executions(3);
@@ -133,7 +130,7 @@ fn should_support_complex_stream() {
         },
     );
 
-    // Nothing to execute.
+    // Now we should trigger the second optimization builder.
     stream.add(operation_1());
     stream.assert_number_of_operations(1);
     stream.assert_number_of_executions(3);
@@ -157,7 +154,7 @@ fn should_support_complex_stream() {
     stream.assert_number_of_operations(1);
     stream.assert_number_of_executions(4);
 
-    // Now we should trigger the first optimization builder (third plan).
+    // Nothing to execute.
     stream.add(operation_2());
     stream.assert_number_of_operations(0);
     stream.assert_number_of_executions(5);

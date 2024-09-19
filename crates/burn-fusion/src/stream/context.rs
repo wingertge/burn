@@ -38,14 +38,6 @@ pub(crate) struct OperationConverter {
 }
 
 pub(crate) trait RelativeOps {
-    /// Convert (usually an [`OperationDescription`]) to a relative form.
-    ///
-    /// The id and the shape of tensors will be computed relative to existing
-    /// operations in the queue. We do this because we want to fuse operations
-    /// that have similar shapes, but we do not care about the exact values.
-    ///
-    /// Similar we do not care about the exact ids of the tensor, but about their
-    /// relative ids (how close they are in the operation queue)
     fn to_relative(&self, converter: &mut OperationConverter) -> Self;
 }
 
@@ -179,35 +171,6 @@ impl RelativeOps for ModuleOperationDescription {
                     options: desc.options.clone(),
                     out: desc.out.to_relative(converter),
                 })
-            }
-            ModuleOperationDescription::DeformableConv2d(desc) => {
-                ModuleOperationDescription::DeformableConv2d(Box::new(DeformConv2dDescription {
-                    x: desc.x.to_relative(converter),
-                    offset: desc.offset.to_relative(converter),
-                    weight: desc.weight.to_relative(converter),
-                    mask: desc.mask.as_ref().map(|t| t.to_relative(converter)),
-                    bias: desc.bias.as_ref().map(|t| t.to_relative(converter)),
-                    options: desc.options.clone(),
-                    out: desc.out.to_relative(converter),
-                }))
-            }
-            ModuleOperationDescription::DeformableConv2dBackward(desc) => {
-                ModuleOperationDescription::DeformableConv2dBackward(Box::new(
-                    DeformConv2dBackwardDescription {
-                        x: desc.x.to_relative(converter),
-                        offset: desc.offset.to_relative(converter),
-                        weight: desc.weight.to_relative(converter),
-                        mask: desc.mask.as_ref().map(|t| t.to_relative(converter)),
-                        bias: desc.bias.as_ref().map(|t| t.to_relative(converter)),
-                        out_grad: desc.out_grad.to_relative(converter),
-                        options: desc.options.clone(),
-                        input_grad: desc.input_grad.to_relative(converter),
-                        offset_grad: desc.offset_grad.to_relative(converter),
-                        weight_grad: desc.weight_grad.to_relative(converter),
-                        mask_grad: desc.mask_grad.as_ref().map(|t| t.to_relative(converter)),
-                        bias_grad: desc.bias_grad.as_ref().map(|t| t.to_relative(converter)),
-                    },
-                ))
             }
             ModuleOperationDescription::ConvTranspose1d(desc) => {
                 ModuleOperationDescription::ConvTranspose1d(ConvTranspose1dDescription {

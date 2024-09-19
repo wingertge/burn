@@ -43,7 +43,6 @@ Available Benchmarks:
 - custom-gelu
 - data
 - matmul
-- resnet50
 - unary
 ```
 
@@ -145,7 +144,7 @@ Then it must be registered in the `BenchmarkValues` enumeration:
 ```rs
 
 #[derive(Debug, Clone, PartialEq, Eq, ValueEnum, Display, EnumIter)]
-pub(crate) enum BenchmarkValues {
+pub(crate) enum BackendValues {
     // ...
     #[strum(to_string = "mybench")]
     MyBench,

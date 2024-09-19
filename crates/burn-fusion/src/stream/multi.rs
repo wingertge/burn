@@ -64,7 +64,7 @@ impl<R: FusionRuntime> MultiStream<R> {
         }
     }
 
-    /// Drain the streams
+    /// Drain the streams.
     pub fn drain(&mut self, handles: &mut HandleContainer<R::FusionHandle>, id: StreamId) {
         if let Some(mut stream) = self.streams.remove(&id) {
             stream.processor.process(
@@ -77,8 +77,6 @@ impl<R: FusionRuntime> MultiStream<R> {
     }
 
     /// When one of the provided streams is different from the current stream, we drain them.
-    ///
-    /// Returns the current stream id.
     fn maybe_drain(
         &mut self,
         streams: Vec<StreamId>,
@@ -88,8 +86,7 @@ impl<R: FusionRuntime> MultiStream<R> {
         let current = StreamId::current();
 
         if streams.len() == 1 {
-            // The only case where we don't need to drain, because we will process
-            // the operation queue of the current stream right after this.
+            // The only case where we don't need to drain.
             if streams[0] == current {
                 return current;
             }

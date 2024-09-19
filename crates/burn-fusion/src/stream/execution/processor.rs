@@ -131,14 +131,12 @@ impl<O> Processor<O> {
         self.explorer.reset(operations);
         self.policy.reset();
 
-        // Reset the policy state with the remaining operations
+        // Reset the policy state.
         for operation in operations.iter() {
             self.policy.update(store, operation);
         }
     }
 
-    /// We found an optimization (i.e. a new execution plan).
-    /// Cache it in the store.
     fn on_optimization_found(
         policy: &Policy<O>,
         operations: &[OperationDescription],

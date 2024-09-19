@@ -78,28 +78,20 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 3>(&ops.node);
 
                 let (x_state, weight_state, bias_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<3>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<3>>(weight_state);
-                let bias =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<1>>(bias_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+                let bias = Some(checkpointer.retrieve_node_output(bias_state));
+
+                let backward = B::conv1d_backward(x, weight, bias, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv1d_x_backward(
-                        x.clone(),
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 3>(node.id, grad)
+                    grads.register::<B, 3>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv1d_weight_backward(x.clone(), weight, grad.clone(), options);
-                    grads.register::<B, 3>(node.id, grad)
+                    grads.register::<B, 3>(node.id, backward.weights_grad)
                 }
                 if let Some(node) = node_bias {
-                    let grad = B::conv1d_bias_backward(x, bias, grad);
-                    grads.register::<B, 1>(node.id, grad)
+                    grads.register::<B, 1>(node.id, backward.bias_grad.unwrap())
                 }
             }
         }
@@ -117,22 +109,16 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 3>(&ops.node);
 
                 let (x_state, weight_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<3>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<3>>(weight_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+
+                let backward = B::conv1d_backward(x, weight, None, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv1d_x_backward(
-                        x.clone(),
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 3>(node.id, grad)
+                    grads.register::<B, 3>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv1d_weight_backward(x, weight, grad, options);
-                    grads.register::<B, 3>(node.id, grad)
+                    grads.register::<B, 3>(node.id, backward.weights_grad)
                 }
             }
         }
@@ -202,32 +188,20 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 3>(&ops.node);
 
                 let (x_state, weight_state, bias_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<3>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<3>>(weight_state);
-                let bias =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<1>>(bias_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+                let bias = Some(checkpointer.retrieve_node_output(bias_state));
+
+                let backward = B::conv_transpose1d_backward(x, weight, bias, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv_transpose1d_x_backward(
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 3>(node.id, grad)
+                    grads.register::<B, 3>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv_transpose1d_weight_backward(
-                        x.clone(),
-                        weight,
-                        grad.clone(),
-                        options,
-                    );
-                    grads.register::<B, 3>(node.id, grad)
+                    grads.register::<B, 3>(node.id, backward.weights_grad)
                 }
                 if let Some(node) = node_bias {
-                    let grad = B::conv_transpose1d_bias_backward(x, bias, grad);
-                    grads.register::<B, 1>(node.id, grad)
+                    grads.register::<B, 1>(node.id, backward.bias_grad.unwrap())
                 }
             }
         }
@@ -245,21 +219,16 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 3>(&ops.node);
 
                 let (x_state, weight_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<3>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<3>>(weight_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+
+                let backward = B::conv_transpose1d_backward(x, weight, None, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv_transpose1d_x_backward(
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 3>(node.id, grad)
+                    grads.register::<B, 3>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv_transpose1d_weight_backward(x, weight, grad, options);
-                    grads.register::<B, 3>(node.id, grad)
+                    grads.register::<B, 3>(node.id, backward.weights_grad)
                 }
             }
         }
@@ -338,29 +307,20 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 4>(&ops.node);
 
                 let (x_state, weight_state, bias_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<4>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<4>>(weight_state);
-                let bias =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<1>>(bias_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+                let bias = Some(checkpointer.retrieve_node_output(bias_state));
+
+                let backward = B::conv2d_backward(x, weight, bias, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv2d_x_backward(
-                        x.clone(),
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 4>(node.id, grad)
+                    grads.register::<B, 4>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad =
-                        B::conv2d_weight_backward(x.clone(), weight.clone(), grad.clone(), options);
-                    grads.register::<B, 4>(node.id, grad)
+                    grads.register::<B, 4>(node.id, backward.weights_grad)
                 }
                 if let Some(node) = node_bias {
-                    let grad = B::conv2d_bias_backward(x, weight, bias, grad);
-                    grads.register::<B, 1>(node.id, grad)
+                    grads.register::<B, 1>(node.id, backward.bias_grad.unwrap())
                 }
             }
         }
@@ -378,22 +338,16 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 4>(&ops.node);
 
                 let (x_state, weight_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<4>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<4>>(weight_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+
+                let backward = B::conv2d_backward(x, weight, None, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv2d_x_backward(
-                        x.clone(),
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 4>(node.id, grad)
+                    grads.register::<B, 4>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv2d_weight_backward(x, weight, grad, options);
-                    grads.register::<B, 4>(node.id, grad)
+                    grads.register::<B, 4>(node.id, backward.weights_grad)
                 }
             }
         }
@@ -441,343 +395,6 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
         }
     }
 
-    fn deform_conv2d(
-        x: AutodiffTensor<B, 4>,
-        offset: AutodiffTensor<B, 4>,
-        weight: AutodiffTensor<B, 4>,
-        mask: Option<AutodiffTensor<B, 4>>,
-        bias: Option<AutodiffTensor<B, 1>>,
-        options: DeformConvOptions<2>,
-    ) -> AutodiffTensor<B, 4> {
-        #[derive(Debug)]
-        struct DeformConv2DWithMaskWithBias;
-        #[derive(Debug)]
-        struct DeformConv2DWithMaskNoBias;
-        #[derive(Debug)]
-        struct DeformConv2DNoMaskWithBias;
-        #[derive(Debug)]
-        struct DeformConv2DNoMaskNoBias;
-
-        impl<B: Backend> Backward<B, 4, 5> for DeformConv2DWithMaskWithBias {
-            type State = (NodeID, NodeID, NodeID, NodeID, NodeID, DeformConvOptions<2>);
-
-            fn backward(
-                self,
-                ops: Ops<Self::State, 5>,
-                grads: &mut Gradients,
-                checkpointer: &mut Checkpointer,
-            ) {
-                let [node_x, node_offset, node_weight, node_mask, node_bias] = ops.parents;
-                let grad = grads.consume::<B, 4>(&ops.node);
-
-                let (x_state, offset_state, weight_state, mask_state, bias_state, options) =
-                    ops.state;
-                let x = checkpointer.retrieve_node_output(x_state);
-                let offset = checkpointer.retrieve_node_output(offset_state);
-                let weight = checkpointer.retrieve_node_output(weight_state);
-                let mask = Some(checkpointer.retrieve_node_output(mask_state));
-                let bias = Some(checkpointer.retrieve_node_output(bias_state));
-
-                let backward =
-                    B::deform_conv2d_backward(x, offset, weight, mask, bias, grad, options);
-
-                if let Some(node) = node_x {
-                    grads.register::<B, 4>(node.id, backward.x_grad)
-                }
-                if let Some(node) = node_offset {
-                    grads.register::<B, 4>(node.id, backward.offset_grad)
-                }
-                if let Some(node) = node_weight {
-                    grads.register::<B, 4>(node.id, backward.weight_grad)
-                }
-                if let Some(node) = node_mask {
-                    grads.register::<B, 4>(node.id, backward.mask_grad.unwrap())
-                }
-                if let Some(node) = node_bias {
-                    grads.register::<B, 1>(node.id, backward.bias_grad.unwrap())
-                }
-            }
-        }
-
-        impl<B: Backend> Backward<B, 4, 4> for DeformConv2DWithMaskNoBias {
-            type State = (NodeID, NodeID, NodeID, NodeID, DeformConvOptions<2>);
-
-            fn backward(
-                self,
-                ops: Ops<Self::State, 4>,
-                grads: &mut Gradients,
-                checkpointer: &mut Checkpointer,
-            ) {
-                let [node_x, node_offset, node_weight, node_mask] = ops.parents;
-                let grad = grads.consume::<B, 4>(&ops.node);
-
-                let (x_state, offset_state, weight_state, mask_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output(x_state);
-                let offset = checkpointer.retrieve_node_output(offset_state);
-                let weight = checkpointer.retrieve_node_output(weight_state);
-                let mask = Some(checkpointer.retrieve_node_output(mask_state));
-
-                let backward =
-                    B::deform_conv2d_backward(x, offset, weight, mask, None, grad, options);
-
-                if let Some(node) = node_x {
-                    grads.register::<B, 4>(node.id, backward.x_grad)
-                }
-                if let Some(node) = node_offset {
-                    grads.register::<B, 4>(node.id, backward.offset_grad)
-                }
-                if let Some(node) = node_weight {
-                    grads.register::<B, 4>(node.id, backward.weight_grad)
-                }
-                if let Some(node) = node_mask {
-                    grads.register::<B, 4>(node.id, backward.mask_grad.unwrap())
-                }
-            }
-        }
-
-        impl<B: Backend> Backward<B, 4, 4> for DeformConv2DNoMaskWithBias {
-            type State = (NodeID, NodeID, NodeID, NodeID, DeformConvOptions<2>);
-
-            fn backward(
-                self,
-                ops: Ops<Self::State, 4>,
-                grads: &mut Gradients,
-                checkpointer: &mut Checkpointer,
-            ) {
-                let [node_x, node_offset, node_weight, node_bias] = ops.parents;
-                let grad = grads.consume::<B, 4>(&ops.node);
-
-                let (x_state, offset_state, weight_state, bias_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output(x_state);
-                let offset = checkpointer.retrieve_node_output(offset_state);
-                let weight = checkpointer.retrieve_node_output(weight_state);
-                let bias = Some(checkpointer.retrieve_node_output(bias_state));
-
-                let backward =
-                    B::deform_conv2d_backward(x, offset, weight, None, bias, grad, options);
-
-                if let Some(node) = node_x {
-                    grads.register::<B, 4>(node.id, backward.x_grad)
-                }
-                if let Some(node) = node_offset {
-                    grads.register::<B, 4>(node.id, backward.offset_grad)
-                }
-                if let Some(node) = node_weight {
-                    grads.register::<B, 4>(node.id, backward.weight_grad)
-                }
-                if let Some(node) = node_bias {
-                    grads.register::<B, 1>(node.id, backward.bias_grad.unwrap())
-                }
-            }
-        }
-
-        impl<B: Backend> Backward<B, 4, 3> for DeformConv2DNoMaskNoBias {
-            type State = (NodeID, NodeID, NodeID, DeformConvOptions<2>);
-
-            fn backward(
-                self,
-                ops: Ops<Self::State, 3>,
-                grads: &mut Gradients,
-                checkpointer: &mut Checkpointer,
-            ) {
-                let [node_x, node_offset, node_weight] = ops.parents;
-                let grad = grads.consume::<B, 4>(&ops.node);
-
-                let (x_state, offset_state, weight_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output(x_state);
-                let offset = checkpointer.retrieve_node_output(offset_state);
-                let weight = checkpointer.retrieve_node_output(weight_state);
-
-                let backward =
-                    B::deform_conv2d_backward(x, offset, weight, None, None, grad, options);
-
-                if let Some(node) = node_x {
-                    grads.register::<B, 4>(node.id, backward.x_grad)
-                }
-                if let Some(node) = node_offset {
-                    grads.register::<B, 4>(node.id, backward.offset_grad)
-                }
-                if let Some(node) = node_weight {
-                    grads.register::<B, 4>(node.id, backward.weight_grad)
-                }
-            }
-        }
-
-        match (mask, bias) {
-            (Some(mask), Some(bias)) => match DeformConv2DWithMaskWithBias
-                .prepare::<C>([
-                    x.node.clone(),
-                    offset.node.clone(),
-                    weight.node.clone(),
-                    mask.node.clone(),
-                    bias.node.clone(),
-                ])
-                .compute_bound()
-                .stateful()
-            {
-                OpsKind::Tracked(mut prep) => {
-                    let x_state = prep.checkpoint(&x);
-                    let offset_state = prep.checkpoint(&offset);
-                    let weight_state = prep.checkpoint(&weight);
-                    let mask_state = prep.checkpoint(&mask);
-                    let bias_state = prep.checkpoint(&bias);
-                    prep.finish(
-                        (
-                            x_state,
-                            offset_state,
-                            weight_state,
-                            mask_state,
-                            bias_state,
-                            options.clone(),
-                        ),
-                        B::deform_conv2d(
-                            x.primitive,
-                            offset.primitive,
-                            weight.primitive,
-                            Some(mask.primitive),
-                            Some(bias.primitive),
-                            options,
-                        ),
-                    )
-                }
-                OpsKind::UnTracked(prep) => prep.finish(B::deform_conv2d(
-                    x.primitive,
-                    offset.primitive,
-                    weight.primitive,
-                    Some(mask.primitive),
-                    Some(bias.primitive),
-                    options,
-                )),
-            },
-            (Some(mask), None) => match DeformConv2DWithMaskNoBias
-                .prepare::<C>([
-                    x.node.clone(),
-                    offset.node.clone(),
-                    weight.node.clone(),
-                    mask.node.clone(),
-                ])
-                .compute_bound()
-                .stateful()
-            {
-                OpsKind::Tracked(mut prep) => {
-                    let x_state = prep.checkpoint(&x);
-                    let offset_state = prep.checkpoint(&offset);
-                    let weight_state = prep.checkpoint(&weight);
-                    let mask_state = prep.checkpoint(&mask);
-                    prep.finish(
-                        (
-                            x_state,
-                            offset_state,
-                            weight_state,
-                            mask_state,
-                            options.clone(),
-                        ),
-                        B::deform_conv2d(
-                            x.primitive,
-                            offset.primitive,
-                            weight.primitive,
-                            Some(mask.primitive),
-                            None,
-                            options,
-                        ),
-                    )
-                }
-                OpsKind::UnTracked(prep) => prep.finish(B::deform_conv2d(
-                    x.primitive,
-                    offset.primitive,
-                    weight.primitive,
-                    Some(mask.primitive),
-                    None,
-                    options,
-                )),
-            },
-            (None, Some(bias)) => match DeformConv2DNoMaskWithBias
-                .prepare::<C>([
-                    x.node.clone(),
-                    offset.node.clone(),
-                    weight.node.clone(),
-                    bias.node.clone(),
-                ])
-                .compute_bound()
-                .stateful()
-            {
-                OpsKind::Tracked(mut prep) => {
-                    let x_state = prep.checkpoint(&x);
-                    let offset_state = prep.checkpoint(&offset);
-                    let weight_state = prep.checkpoint(&weight);
-                    let bias_state = prep.checkpoint(&bias);
-                    prep.finish(
-                        (
-                            x_state,
-                            offset_state,
-                            weight_state,
-                            bias_state,
-                            options.clone(),
-                        ),
-                        B::deform_conv2d(
-                            x.primitive,
-                            offset.primitive,
-                            weight.primitive,
-                            None,
-                            Some(bias.primitive),
-                            options,
-                        ),
-                    )
-                }
-                OpsKind::UnTracked(prep) => prep.finish(B::deform_conv2d(
-                    x.primitive,
-                    offset.primitive,
-                    weight.primitive,
-                    None,
-                    Some(bias.primitive),
-                    options,
-                )),
-            },
-            (None, None) => match DeformConv2DNoMaskNoBias
-                .prepare::<C>([x.node.clone(), offset.node.clone(), weight.node.clone()])
-                .compute_bound()
-                .stateful()
-            {
-                OpsKind::Tracked(mut prep) => {
-                    let x_state = prep.checkpoint(&x);
-                    let offset_state = prep.checkpoint(&offset);
-                    let weight_state = prep.checkpoint(&weight);
-                    prep.finish(
-                        (x_state, offset_state, weight_state, options.clone()),
-                        B::deform_conv2d(
-                            x.primitive,
-                            offset.primitive,
-                            weight.primitive,
-                            None,
-                            None,
-                            options,
-                        ),
-                    )
-                }
-                OpsKind::UnTracked(prep) => prep.finish(B::deform_conv2d(
-                    x.primitive,
-                    offset.primitive,
-                    weight.primitive,
-                    None,
-                    None,
-                    options,
-                )),
-            },
-        }
-    }
-
-    fn deform_conv2d_backward(
-        _x: AutodiffTensor<B, 4>,
-        _offset: AutodiffTensor<B, 4>,
-        _weight: AutodiffTensor<B, 4>,
-        _mask: Option<AutodiffTensor<B, 4>>,
-        _bias: Option<AutodiffTensor<B, 1>>,
-        _output_grad: AutodiffTensor<B, 4>,
-        _options: DeformConvOptions<2>,
-    ) -> DeformConv2dBackward<Self> {
-        panic!("Can't differentiate deform conv 2d backward.");
-    }
-
     fn conv_transpose2d(
         x: AutodiffTensor<B, 4>,
         weight: AutodiffTensor<B, 4>,
@@ -802,32 +419,20 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 4>(&ops.node);
 
                 let (x_state, weight_state, bias_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<4>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<4>>(weight_state);
-                let bias =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<1>>(bias_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+                let bias = Some(checkpointer.retrieve_node_output(bias_state));
+
+                let backward = B::conv_transpose2d_backward(x, weight, bias, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv_transpose2d_x_backward(
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 4>(node.id, grad)
+                    grads.register::<B, 4>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv_transpose2d_weight_backward(
-                        x.clone(),
-                        weight,
-                        grad.clone(),
-                        options,
-                    );
-                    grads.register::<B, 4>(node.id, grad)
+                    grads.register::<B, 4>(node.id, backward.weights_grad)
                 }
                 if let Some(node) = node_bias {
-                    let grad = B::conv_transpose2d_bias_backward(x, bias, grad);
-                    grads.register::<B, 1>(node.id, grad)
+                    grads.register::<B, 1>(node.id, backward.bias_grad.unwrap())
                 }
             }
         }
@@ -845,21 +450,16 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 4>(&ops.node);
 
                 let (x_state, weight_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<4>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<4>>(weight_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+
+                let backward = B::conv_transpose2d_backward(x, weight, None, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv_transpose2d_x_backward(
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 4>(node.id, grad)
+                    grads.register::<B, 4>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv_transpose2d_weight_backward(x, weight, grad, options);
-                    grads.register::<B, 4>(node.id, grad)
+                    grads.register::<B, 4>(node.id, backward.weights_grad)
                 }
             }
         }
@@ -940,29 +540,20 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 5>(&ops.node);
 
                 let (x_state, weight_state, bias_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<5>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<5>>(weight_state);
-                let bias =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<1>>(bias_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+                let bias = Some(checkpointer.retrieve_node_output(bias_state));
+
+                let backward = B::conv3d_backward(x, weight, bias, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv3d_x_backward(
-                        x.clone(),
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 5>(node.id, grad)
+                    grads.register::<B, 5>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad =
-                        B::conv3d_weight_backward(x.clone(), weight.clone(), grad.clone(), options);
-                    grads.register::<B, 5>(node.id, grad)
+                    grads.register::<B, 5>(node.id, backward.weights_grad)
                 }
                 if let Some(node) = node_bias {
-                    let grad = B::conv3d_bias_backward(x, weight, bias, grad);
-                    grads.register::<B, 1>(node.id, grad)
+                    grads.register::<B, 1>(node.id, backward.bias_grad.unwrap())
                 }
             }
         }
@@ -980,22 +571,16 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 5>(&ops.node);
 
                 let (x_state, weight_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<5>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<5>>(weight_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+
+                let backward = B::conv3d_backward(x, weight, None, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv3d_x_backward(
-                        x.clone(),
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 5>(node.id, grad)
+                    grads.register::<B, 5>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv3d_weight_backward(x, weight, grad, options);
-                    grads.register::<B, 5>(node.id, grad)
+                    grads.register::<B, 5>(node.id, backward.weights_grad)
                 }
             }
         }
@@ -1067,32 +652,20 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 5>(&ops.node);
 
                 let (x_state, weight_state, bias_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<5>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<5>>(weight_state);
-                let bias =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<1>>(bias_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+                let bias = Some(checkpointer.retrieve_node_output(bias_state));
+
+                let backward = B::conv_transpose3d_backward(x, weight, bias, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv_transpose3d_x_backward(
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 5>(node.id, grad)
+                    grads.register::<B, 5>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv_transpose3d_weight_backward(
-                        x.clone(),
-                        weight,
-                        grad.clone(),
-                        options,
-                    );
-                    grads.register::<B, 5>(node.id, grad)
+                    grads.register::<B, 5>(node.id, backward.weights_grad)
                 }
                 if let Some(node) = node_bias {
-                    let grad = B::conv_transpose3d_bias_backward(x, bias, grad);
-                    grads.register::<B, 1>(node.id, grad)
+                    grads.register::<B, 1>(node.id, backward.bias_grad.unwrap())
                 }
             }
         }
@@ -1110,21 +683,16 @@ impl<B: Backend, C: CheckpointStrategy> ModuleOps<Autodiff<B, C>> for Autodiff<B
                 let grad = grads.consume::<B, 5>(&ops.node);
 
                 let (x_state, weight_state, options) = ops.state;
-                let x = checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<5>>(x_state);
-                let weight =
-                    checkpointer.retrieve_node_output::<B::FloatTensorPrimitive<5>>(weight_state);
+                let x = checkpointer.retrieve_node_output(x_state);
+                let weight = checkpointer.retrieve_node_output(weight_state);
+
+                let backward = B::conv_transpose3d_backward(x, weight, None, grad, options);
 
                 if let Some(node) = node_x {
-                    let grad = B::conv_transpose3d_x_backward(
-                        weight.clone(),
-                        grad.clone(),
-                        options.clone(),
-                    );
-                    grads.register::<B, 5>(node.id, grad)
+                    grads.register::<B, 5>(node.id, backward.x_grad)
                 }
                 if let Some(node) = node_weight {
-                    let grad = B::conv_transpose3d_weight_backward(x, weight, grad, options);
-                    grads.register::<B, 5>(node.id, grad)
+                    grads.register::<B, 5>(node.id, backward.weights_grad)
                 }
             }
         }
