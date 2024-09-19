@@ -1,13 +1,14 @@
 use burn_tensor::{ops::ConvTransposeOptions, ElementConversion, Shape};
 use cubecl::{
+    tune,
     tune::{local_tuner, LocalTuner},
-    tune_set, AutotuneKey,
+    AutotuneKey,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
     kernel::{
-        conv::{ConvTranspose2dCol2im, ConvTranspose2dDirect},
+        conv::{conv_transpose2d_col2im, conv_transpose2d_direct},
         prng::random_uniform,
     },
     tensor::JitTensor,
@@ -56,7 +57,7 @@ pub fn conv_transpose2d_autotune<R: JitRuntime, E: FloatElement, I: IntElement>(
     )
 }
 
-#[tune_set(operations(ConvTranspose2dDirect, ConvTranspose2dCol2im), create_key = create_key)]
+#[tune(operations(conv_transpose2d_direct, conv_transpose2d_col2im), create_key = create_key)]
 pub fn conv_transpose2d_operations<R: JitRuntime, E: FloatElement, I: IntElement>(
     key: JitAutotuneKey,
     input: JitTensor<R, E, 4>,
@@ -64,22 +65,24 @@ pub fn conv_transpose2d_operations<R: JitRuntime, E: FloatElement, I: IntElement
     bias: Option<JitTensor<R, E, 1>>,
     options: ConvTransposeOptions<2>,
 ) -> JitTensor<R, E, 4> {
-    let (input, weights, bias) = test_inputs_transpose(key, &input.device);
+    let key = match key {
+        JitAutotuneKey::ConvTranspose2d(key) => key,
+        _ => unreachable!(),
+    };
+    let device = &input.device;
 
-    vec![
-        Box::new(ConvTranspose2dDirect::<R, E, I>::new(
-            input.clone(),
-            weights.clone(),
-            bias.clone(),
-            options.clone(),
-        )),
-        Box::new(ConvTranspose2dCol2im::<R, E, I>::new(
-            input.clone(),
-            weights.clone(),
-            bias.clone(),
-            options.clone(),
-        )),
-    ]
+    let random_bounds: (E, E) = ((-1.0).elem::<E>(), (1.0).elem::<E>());
+    let input_shape = Shape::new([key.batch_size, key.in_channels, key.height, key.width]);
+    let input = random_uniform(input_shape, device, random_bounds.0, random_bounds.1);
+    let c_per_grp = key.in_channels / key.groups;
+    let [kernel_h, kernel_w] = key.kernel_size;
+    let weight_shape = Shape::new([key.out_channels, c_per_grp, kernel_h, kernel_w]);
+    let weights = random_uniform(weight_shape, device, random_bounds.0, random_bounds.1);
+    let bias_shape = Shape::new([key.out_channels]);
+    let bias = key
+        .has_bias
+        .then(|| random_uniform(bias_shape, device, random_bounds.0, random_bounds.1));
+    (input, weights, bias, options)
 }
 
 fn create_key<R: JitRuntime, E: FloatElement>(
@@ -111,33 +114,4 @@ fn create_key<R: JitRuntime, E: FloatElement>(
         batch_size,
         bias.is_some(),
     ))
-}
-
-pub type Inputs<R, E> = (
-    JitTensor<R, E, 4>,
-    JitTensor<R, E, 4>,
-    Option<JitTensor<R, E, 1>>,
-);
-
-fn test_inputs_transpose<R: JitRuntime, E: FloatElement>(
-    key: &JitAutotuneKey,
-    device: &R::JitDevice,
-) -> Inputs<R, E> {
-    let key = match key {
-        JitAutotuneKey::ConvTranspose2d(key) => key,
-        _ => unreachable!(),
-    };
-
-    let random_bounds: (E, E) = ((-1.0).elem::<E>(), (1.0).elem::<E>());
-    let input_shape = Shape::new([key.batch_size, key.in_channels, key.height, key.width]);
-    let input = random_uniform(input_shape, device, random_bounds.0, random_bounds.1);
-    let c_per_grp = key.in_channels / key.groups;
-    let [kernel_h, kernel_w] = key.kernel_size;
-    let weight_shape = Shape::new([key.out_channels, c_per_grp, kernel_h, kernel_w]);
-    let weights = random_uniform(weight_shape, device, random_bounds.0, random_bounds.1);
-    let bias_shape = Shape::new([key.out_channels]);
-    let bias = key
-        .has_bias
-        .then(|| random_uniform(bias_shape, device, random_bounds.0, random_bounds.1));
-    (input, weights, bias)
 }

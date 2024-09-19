@@ -1,8 +1,8 @@
 use cubecl::{
     cpa,
     ir::{Elem, IntKind, KernelDefinition, Scope, Variable, Visibility},
-    tune_op, CubeCountSettings, Execution, InputInfo, KernelExpansion, KernelIntegrator,
-    KernelSettings, OutputInfo,
+    CubeCountSettings, Execution, InputInfo, KernelExpansion, KernelIntegrator, KernelSettings,
+    OutputInfo,
 };
 use std::marker::PhantomData;
 
@@ -371,7 +371,6 @@ impl<R: JitRuntime, E: JitElement> Kernel for Conv2dTransposeEagerKernel<R, E> {
 /// * `bias` - The bias added to each channel
 /// * `options` - The options to use for the convolution
 ///
-#[tune_op]
 #[allow(clippy::extra_unused_type_parameters)]
 pub fn conv_transpose2d_direct<R: JitRuntime, E: JitElement, I: IntElement>(
     input: JitTensor<R, E, 4>,

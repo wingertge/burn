@@ -2,7 +2,7 @@ use burn_tensor::{
     ops::{conv::calculate_conv_output_size, ConvOptions, FloatTensorOps as _},
     Shape,
 };
-use cubecl::{calculate_cube_count_elemwise, prelude::*, tune_op};
+use cubecl::{calculate_cube_count_elemwise, prelude::*};
 
 use crate::{
     kernel::into_contiguous,
@@ -165,7 +165,6 @@ fn im2col<R: JitRuntime, E: FloatElement>(
 /// * `bias` - The bias added to each channel
 /// * `options` - The options to use for the convolution
 ///
-#[tune_op]
 pub fn conv2d_im2col<R: JitRuntime, E: FloatElement, I: IntElement>(
     input: JitTensor<R, E, 4>,
     weight: JitTensor<R, E, 4>,
