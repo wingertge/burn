@@ -1,7 +1,7 @@
 use burn_tensor::{ops::ConvTransposeOptions, ElementConversion, Shape};
 use cubecl::{
     tune,
-    tune::{local_tuner, LocalTuner},
+    tune::{local_tuner, tune_with, LocalTuner},
     AutotuneKey,
 };
 use serde::{Deserialize, Serialize};
@@ -82,7 +82,7 @@ pub fn conv_transpose2d_operations<R: JitRuntime, E: FloatElement, I: IntElement
     let bias = key
         .has_bias
         .then(|| random_uniform(bias_shape, device, random_bounds.0, random_bounds.1));
-    (input, weights, bias, options)
+    tune_with!(input, weights, bias, options)
 }
 
 fn create_key<R: JitRuntime, E: FloatElement>(
