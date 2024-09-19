@@ -1,8 +1,9 @@
 use burn_tensor::{ops::ConvOptions, ElementConversion, Shape};
 use cubecl::{
     tune::{local_tuner, LocalTuner},
-    tune_set,
+    tune_set, AutotuneKey,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     kernel::{
@@ -13,7 +14,7 @@ use crate::{
     FloatElement, IntElement, JitAutotuneKey, JitRuntime, JitTuneId,
 };
 
-use super::{Conv2dAutotuneKey, Inputs};
+use super::Inputs;
 
 /// Executes autotune on conv2d operations
 pub fn conv2d_autotune<R: JitRuntime, E: FloatElement, I: IntElement>(
@@ -33,6 +34,27 @@ pub fn conv2d_autotune<R: JitRuntime, E: FloatElement, I: IntElement>(
             input, weights, bias, options,
         )),
     )
+}
+
+#[derive(Hash, Eq, PartialEq, Debug, Clone, Serialize, Deserialize, AutotuneKey)]
+/// Autotune key representative of matmul versions
+pub struct Conv2dAutotuneKey {
+    pub kernel_size: [usize; 2],
+    pub stride: [usize; 2],
+    pub padding: [usize; 2],
+    pub dilation: [usize; 2],
+    pub groups: usize,
+    #[autotune(anchor)]
+    pub in_channels: usize,
+    #[autotune(anchor)]
+    pub out_channels: usize,
+    #[autotune(anchor)]
+    pub height: usize,
+    #[autotune(anchor)]
+    pub width: usize,
+    #[autotune(anchor)]
+    pub batch_size: usize,
+    pub has_bias: bool,
 }
 
 #[tune_set(operations(Conv2dDirect, Conv2dIm2col), create_key = create_key)]
