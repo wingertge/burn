@@ -5,8 +5,7 @@ use crate::{
 };
 #[cfg(feature = "distributed")]
 use burn_backend::distributed::DistributedBackend;
-use burn_backend::{Device, DeviceHandle, DeviceId, DeviceService};
-
+use burn_backend::{Device, DeviceHandle, DeviceId, DeviceService, DeviceServiceStage};
 use burn_backend::{TensorData, backend::ExecutionError};
 use burn_ir::{OperationIr, TensorId, TensorIr};
 use std::sync::Arc;
@@ -26,6 +25,9 @@ impl<R: FusionRuntime> DeviceService for FusionServer<R> {
 
     fn utilities(&self) -> burn_backend::ServerUtilitiesHandle {
         Arc::new(())
+    }
+    fn stage() -> DeviceServiceStage {
+        DeviceServiceStage::Upstream
     }
 }
 
@@ -116,9 +118,14 @@ where
     }
 
     /// Register all lazy computation.
-    pub fn drain(&self) {
+    pub fn sync<Re: Send + 'static>(&self, sync_fn: impl FnOnce() -> Re + Send + 'static) -> Re {
         let id = StreamId::current();
-        self.server.submit(move |server| server.drain_stream(id));
+        self.server
+            .submit_blocking(move |server| {
+                server.drain_stream(id);
+                sync_fn()
+            })
+            .unwrap()
     }
 
     /// Flush the operations queue.
