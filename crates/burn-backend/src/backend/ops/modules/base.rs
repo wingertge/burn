@@ -1104,24 +1104,35 @@ pub trait ModuleOps<B: Backend> {
         }
     }
 
-    /// Real-valued fast Fourier transform.
+    /// Real-valued FFT with optional size parameter.
     ///
-    /// Computes the discrete Fourier transform of a real-valued input along the given dimension.
-    /// The transform is applied independently for each slice along `dim`, returning the non-redundant
-    /// frequency components as separate real and imaginary tensors.
-    /// #Returns
-    /// two tensors, the first is the real part, the second is the imaginary
-    fn rfft(signal: FloatTensor<B>, dim: usize) -> (FloatTensor<B>, FloatTensor<B>);
+    /// When `n` is `None`, the signal must be a power of two along `dim`, and the output has
+    /// `signal_len / 2 + 1` frequency bins.
+    ///
+    /// When `n` is `Some(size)`, `size` must also be a power of two. The signal is truncated
+    /// or zero-padded to `size` and the output has `size / 2 + 1` frequency bins. Non-power-
+    /// of-two sizes are currently rejected at the public API boundary; true arbitrary-`n` DFT
+    /// support (Bluestein's algorithm) is tracked as a follow-up.
+    ///
+    /// Returns two tensors: the real part and the imaginary part.
+    fn rfft(
+        signal: FloatTensor<B>,
+        dim: usize,
+        n: Option<usize>,
+    ) -> (FloatTensor<B>, FloatTensor<B>);
 
-    /// Inverse real-valued fast Fourier transform.
+    /// Inverse real-valued FFT with optional output size.
     ///
-    /// Computes the inverse discrete Fourier transform from a frequency-domain
-    /// representation given as separate real and imaginary components.
-    /// The transform is applied independently for each slice along `dim`.
+    /// When `n` is `None`, the reconstructed signal length `2 * (spectrum_size - 1)` must be
+    /// a power of two.
+    ///
+    /// When `n` is `Some(size)`, `size` must also be a power of two. Output has exactly
+    /// `size` samples.
     fn irfft(
         spectrum_re: FloatTensor<B>,
         spectrum_im: FloatTensor<B>,
         dim: usize,
+        n: Option<usize>,
     ) -> FloatTensor<B>;
 }
 

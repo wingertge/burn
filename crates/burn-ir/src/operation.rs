@@ -253,9 +253,9 @@ pub enum ModuleOperationIr {
     Interpolate(InterpolateOpIr),
     /// Operation corresponding to [interpolate backward](burn_backend::ops::ModuleOps::interpolate_backward).
     InterpolateBackward(InterpolateBackwardOpIr),
-    /// Operation corresponding to [Rfft](burn_backend::ops::ModuleOps::rfft)
+    /// Operation corresponding to [rfft](burn_backend::ops::ModuleOps::rfft)
     Rfft(RfftOpIr),
-    /// Operation corresponding to [IRfft](burn_backend::ops::ModuleOps::irfft)
+    /// Operation corresponding to [irfft](burn_backend::ops::ModuleOps::irfft)
     IRfft(IRfftOpIr),
     /// Operation corresponding to [attention](burn_backend::ops::ModuleOps::attention).
     Attention(AttentionOpIr),
@@ -1617,6 +1617,7 @@ pub struct InterpolateOpIr {
 pub struct RfftOpIr {
     pub signal: TensorIr,
     pub dim: usize,
+    pub n: Option<usize>,
     pub out_re: TensorIr,
     pub out_im: TensorIr,
 }
@@ -1627,22 +1628,27 @@ pub struct IRfftOpIr {
     pub input_re: TensorIr,
     pub input_im: TensorIr,
     pub dim: usize,
+    pub n: Option<usize>,
     pub out_signal: TensorIr,
 }
 
 #[allow(missing_docs)]
 impl RfftOpIr {
-    pub fn create<F>(signal: TensorIr, dim: usize, mut new_id: F) -> Self
+    pub fn create<F>(signal: TensorIr, dim: usize, n: Option<usize>, mut new_id: F) -> Self
     where
         F: FnMut() -> crate::TensorId,
     {
+        // `n` is required to be a power of two at the public API boundary, so
+        // the output has `n / 2 + 1` bins (matching scipy/torch for pow2 n).
         let mut shape = signal.shape.clone();
-        shape[dim] = shape[dim] / 2 + 1;
+        let fft_len = n.unwrap_or(shape[dim]);
+        shape[dim] = fft_len / 2 + 1;
         let dtype = signal.dtype;
 
         Self {
             signal,
             dim,
+            n,
             out_re: TensorIr::uninit(new_id(), shape.clone(), dtype),
             out_im: TensorIr::uninit(new_id(), shape, dtype),
         }
@@ -1651,18 +1657,33 @@ impl RfftOpIr {
 
 #[allow(missing_docs)]
 impl IRfftOpIr {
-    pub fn create<F>(input_re: TensorIr, input_im: TensorIr, dim: usize, mut new_id: F) -> Self
+    pub fn create<F>(
+        input_re: TensorIr,
+        input_im: TensorIr,
+        dim: usize,
+        n: Option<usize>,
+        mut new_id: F,
+    ) -> Self
     where
         F: FnMut() -> crate::TensorId,
     {
+        debug_assert!(
+            input_re.shape[dim] >= 1,
+            "IRfftOpIr: input spectrum dimension must be >= 1"
+        );
+        debug_assert!(
+            !matches!(n, Some(0)),
+            "IRfftOpIr: n must be >= 1 when specified"
+        );
         let mut shape = input_re.shape.clone();
-        shape[dim] = (shape[dim] - 1) * 2;
+        shape[dim] = n.unwrap_or((shape[dim] - 1) * 2);
         let dtype = input_re.dtype;
 
         Self {
             input_re,
             input_im,
             dim,
+            n,
             out_signal: TensorIr::uninit(new_id(), shape, dtype),
         }
     }
