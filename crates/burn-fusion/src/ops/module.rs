@@ -32,6 +32,10 @@ macro_rules! make_ops {
 }
 
 impl<B: FusionBackend> ModuleOps<Fusion<B>> for Fusion<B> {
+    // linear and its backward ops fall back to the default ModuleOps impl,
+    // which decomposes into matmul + add / matmul + sum. This preserves
+    // downstream fusion in burn-cubecl-fusion, which matches on those
+    // primitive IR nodes.
     fn conv1d(
         x: FloatTensor<Self>,
         weight: FloatTensor<Self>,
